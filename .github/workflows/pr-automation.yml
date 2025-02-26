@@ -1,0 +1,54 @@
+name: PR Automation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  format-pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set PR Title based on branch name
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const prTitle = context.payload.pull_request.title;
+            const branchName = context.payload.pull_request.head.ref;
+
+            if (!prTitle.startsWith("Feat: ")) {
+              const newTitle = `Feat: ${branchName.replace("feat/", "")}`;
+              await github.rest.pulls.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.pull_request.number,
+                title: newTitle
+              });
+              console.log(`Updated PR title to: ${newTitle}`);
+            }
+
+  generate-commit-summary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get PR Commits and Format Summary
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const prNumber = context.payload.pull_request.number;
+
+            const commits = await github.rest.pulls.listCommits({
+              owner,
+              repo,
+              pull_number: prNumber
+            });
+
+            let commitMessages = commits.data.map(commit => `- ${commit.commit.message.split('\n')[0]}`).join('\n');
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: prNumber,
+              body: `### Squash Merge Summary\n${commitMessages}`
+            });
+
+            console.log("Added commit summary comment.");
