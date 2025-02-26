@@ -7,6 +7,8 @@ on:
 jobs:
   format-pr-title:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write # ✅ Erlaubt Updates an Pull Requests
     steps:
       - name: Set PR Title based on branch name
         uses: actions/github-script@v6
