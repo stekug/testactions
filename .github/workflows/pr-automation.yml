@@ -2,17 +2,18 @@ name: PR Automation
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
   format-pr-title:
     runs-on: ubuntu-latest
     permissions:
-      pull-requests: write # ✅ Erlaubt Updates an Pull Requests
+      pull-requests: write
     steps:
       - name: Set PR Title based on branch name
         uses: actions/github-script@v6
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const prTitle = context.payload.pull_request.title;
             const branchName = context.payload.pull_request.head.ref;
@@ -50,12 +51,21 @@ jobs:
 
             let commitMessages = commits.data.map(commit => `- ${commit.commit.message.split('\n')[0]}`).join('\n');
 
-            // Set Squash Merge Description
+            // ✅ Hier setzen wir nun die Extended Description explizit
+            const pr = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: prNumber
+            });
+
+            const newBody = `### Squash Merge Summary\n${commitMessages}`;
+
             await github.rest.pulls.update({
               owner,
               repo,
               pull_number: prNumber,
-              body: `### Squash Merge Summary\n${commitMessages}`
+              title: pr.data.title,  // PR-Titel beibehalten
+              body: newBody           // ✅ Extended Description setzen
             });
 
-            console.log("Set Squash Merge description successfully.");
+            console.log("Updated PR body for Squash Merge.");
