@@ -30,6 +30,9 @@ jobs:
 
   generate-commit-summary:
     runs-on: ubuntu-latest
+    permissions:
+    issues: write # ✅ Erlaubt das Hinzufügen von Kommentaren zu Pull Requests
+    pull-requests: write # ✅ Erlaubt das Lesen von PR-Commits
     steps:
       - name: Get PR Commits and Format Summary
         uses: actions/github-script@v6
